@@ -2,24 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Role } from "@prisma/client";
+import { NAV_ACCESS } from "@/lib/auth/permissions";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Projects", href: "/projects" },
-  { label: "Requirements", href: "/requirements" },
-  { label: "Tasks", href: "/tasks" },
-  { label: "Sprints", href: "/sprints" },
-  { label: "Testing", href: "/testing" },
-  { label: "Bugs", href: "/bugs" },
-];
-
-export default function Sidebar() {
+export default function Sidebar({ role }: { role: Role }) {
   const pathname = usePathname();
+  const items = NAV_ACCESS.filter((item) => item.roles.includes(role));
 
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-gray-200 md:bg-white">
       <nav className="flex flex-1 flex-col gap-1 p-4">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
