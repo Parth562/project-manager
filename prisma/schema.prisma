@@ -1,0 +1,17 @@
+// Prisma schema — Phase 1 placeholder.
+// Real application models (Project, Requirement, Task, Sprint, TestCase, Bug, ...)
+// will be added incrementally in later phases.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Ping {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}
