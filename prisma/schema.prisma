@@ -1,5 +1,5 @@
-// Prisma schema — Phase 2: authentication (Better Auth).
-// Real application models (Project, Requirement, Task, Sprint, TestCase, Bug, ...)
+// Prisma schema — Phase 2 (Better Auth) + Phase 3 (Project & Team management).
+// Remaining application models (Requirement, Task, Sprint, TestCase, Bug, ...)
 // will be added incrementally in later phases.
 
 generator client {
@@ -29,6 +29,9 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+
+  createdProjects    Project[]       @relation("ProjectCreator")
+  projectMemberships ProjectMember[]
 
   @@map("user")
 }
@@ -75,4 +78,46 @@ model Verification {
   updatedAt  DateTime? @updatedAt
 
   @@map("verification")
+}
+
+// --- Phase 3: Project & Team management ---
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  createdById String
+  createdBy   User            @relation("ProjectCreator", fields: [createdById], references: [id])
+  members     ProjectMember[]
+
+  @@map("project")
+}
+
+// Join model between User and Project. The user's system-wide Role (on User)
+// remains the single source of truth for permissions — this model only
+// records project membership, not a per-project role.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_member")
 }
