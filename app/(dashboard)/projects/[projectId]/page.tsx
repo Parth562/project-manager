@@ -63,16 +63,21 @@ export default async function ProjectDetailsPage({
             <div>End: {project.endDate.toLocaleDateString()}</div>
             <div>Created By: {project.createdBy.name}</div>
           </dl>
-          {isCreator && (
-            <div className="flex gap-2">
-              <Link href={`/projects/${project.id}/edit`}>
-                <Button>Edit Project</Button>
-              </Link>
-              <Link href={`/projects/${project.id}/team`}>
-                <Button>Manage Team</Button>
-              </Link>
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Link href={`/projects/${project.id}/requirements`}>
+              <Button>Requirements</Button>
+            </Link>
+            {isCreator && (
+              <>
+                <Link href={`/projects/${project.id}/edit`}>
+                  <Button>Edit Project</Button>
+                </Link>
+                <Link href={`/projects/${project.id}/team`}>
+                  <Button>Manage Team</Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </Card>
 
