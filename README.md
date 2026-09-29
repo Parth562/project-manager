@@ -21,11 +21,12 @@ college software engineering project built incrementally in phases.
 
 ## Current Phase
 
-**Phase 3 — Project & Team Management**
+**Phase 4 — Requirement Management**
 
-Authentication (Phase 2) and project/team management (Phase 3) are both
-implemented. Requirements, user stories, tasks, sprints, testing, bugs, and
-AI features are not implemented yet — their pages remain placeholders.
+Authentication (Phase 2), project/team management (Phase 3), and requirement
+management (Phase 4) are implemented. User stories, tasks, sprints, testing,
+bugs, and AI features are not implemented yet — their pages remain
+placeholders.
 
 ### Authentication (Phase 2)
 
@@ -60,12 +61,46 @@ AI features are not implemented yet — their pages remain placeholders.
 - Validation via Zod (`lib/validations/project.ts`): required name/description,
   valid dates, end date not before start date.
 
+### Phase 4 – Requirement Management
+
+Implemented:
+- Requirement creation
+- Requirement listing (with title search and priority/status filters)
+- Requirement details
+- Requirement editing
+- Requirement deletion
+- Requirement priority (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`)
+- Requirement status (`TODO`, `IN_PROGRESS`, `COMPLETED`)
+- Project-scoped requirements
+- Role-based requirement authorization
+- Requirement validation (Zod)
+
+Routes: `/projects/[projectId]/requirements`, `/new`,
+`/[requirementId]`, `/[requirementId]/edit`. The sidebar `/requirements`
+page lists the user's projects and links to each project's requirements.
+
+Authorization (enforced server-side in `lib/actions/requirements.ts` and on
+every page via `lib/auth/project-access.ts`; rules in
+`lib/auth/requirement-permissions.ts`):
+- Any project member can view requirements; non-members see "Access denied".
+- A requirement is always looked up by both its ID and the project ID, so it
+  cannot be opened through another project's URL (404).
+- Only the project's creator (a Project Manager) can create, edit, delete, or
+  change the priority of requirements.
+- Developers and Testers who are project members can change a requirement's
+  status only.
+- Faculty/Client users are view-only.
+
+AI-based user story generation will be implemented in Phase 5.
+
 ## Database Models
 
 - `User`, `Account`, `Session`, `Verification` — Better Auth (Phase 2).
 - `Project`, `ProjectMember` — project/team management (Phase 3). A user's
   system-wide `Role` (on `User`) remains the single source of truth for
   permissions; `ProjectMember` only records membership.
+- `Requirement` — project requirements (Phase 4), with `RequirementPriority`
+  and `RequirementStatus` enums. Deleted with its project.
 
 ## Installation
 
@@ -101,6 +136,16 @@ npx prisma generate      # generate Prisma Client
 npx prisma migrate dev   # create/apply a development migration
 ```
 
+## Automated Tests
+
+```bash
+npm test
+```
+
+Vitest unit tests cover requirement validation (`lib/validations/requirement.ts`)
+and the role/permission rules (`lib/auth/requirement-permissions.ts`). Database
+and session-dependent behavior is verified manually (see below).
+
 ## Testing Performed
 
 Manual end-to-end testing was performed against the real Supabase database:
@@ -111,6 +156,15 @@ membership), adding a team member, server-side rejection of
 `/projects/new` and `/projects/[projectId]/team` for non-Project-Managers,
 "Access denied" when a member of one project requests another project's
 URL directly, and a 404 for a non-existent project ID.
+
+Phase 4 was verified against the real database with temporary users of all
+four roles: requirement create/edit/delete and status changes, search and
+priority/status filters, "Access denied" for non-members, 404 for a
+requirement opened under another project's URL, redirects for
+non-authorized roles on `/new` and `/edit`, and server-side rejection of
+forged create/edit/delete/status submissions from unauthorized roles,
+non-members, unauthenticated callers, and cross-project IDs. The temporary
+test data was removed afterwards.
 
 ## Future Modules
 
