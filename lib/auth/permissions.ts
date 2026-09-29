@@ -24,7 +24,7 @@ export const NAV_ACCESS: { label: string; href: string; roles: Role[] }[] = [
   {
     label: "Requirements",
     href: "/requirements",
-    roles: ["PROJECT_MANAGER", "FACULTY_CLIENT"],
+    roles: ["PROJECT_MANAGER", "DEVELOPER", "TESTER", "FACULTY_CLIENT"],
   },
   { label: "Tasks", href: "/tasks", roles: ["PROJECT_MANAGER", "DEVELOPER"] },
   { label: "Sprints", href: "/sprints", roles: ["PROJECT_MANAGER"] },
