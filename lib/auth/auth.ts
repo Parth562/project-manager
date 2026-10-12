@@ -20,5 +20,9 @@ export const auth = betterAuth({
       },
     },
   },
+  session: {
+    // Signed cookie cache: skips the remote Postgres round trip on most session checks.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   plugins: [nextCookies()],
 });
