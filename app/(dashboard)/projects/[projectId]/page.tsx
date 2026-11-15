@@ -63,9 +63,21 @@ export default async function ProjectDetailsPage({
             <div>End: {project.endDate.toLocaleDateString()}</div>
             <div>Created By: {project.createdBy.name}</div>
           </dl>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href={`/projects/${project.id}/requirements`}>
               <Button>Requirements</Button>
+            </Link>
+            <Link href={`/projects/${project.id}/tasks`}>
+              <Button className="bg-indigo-700 hover:bg-indigo-600">Tasks</Button>
+            </Link>
+            <Link href={`/projects/${project.id}/kanban`}>
+              <Button className="bg-indigo-700 hover:bg-indigo-600">Kanban</Button>
+            </Link>
+            <Link href={`/projects/${project.id}/testing`}>
+              <Button className="bg-teal-700 hover:bg-teal-600">Testing</Button>
+            </Link>
+            <Link href={`/projects/${project.id}/bugs`}>
+              <Button className="bg-red-700 hover:bg-red-600">Bugs</Button>
             </Link>
             {isCreator && (
               <>
