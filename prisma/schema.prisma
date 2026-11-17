@@ -3,6 +3,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Load `include`d relations in the same SQL query (JOINs) instead of one extra
+  // round trip per relation. Each round trip to the remote DB costs ~0.5-1.5s.
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {

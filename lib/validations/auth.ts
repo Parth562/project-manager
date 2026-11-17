@@ -7,10 +7,24 @@ export const roleValues = [
   "FACULTY_CLIENT",
 ] as const;
 
+// Registration is restricted to college accounts.
+export const ALLOWED_EMAIL_DOMAIN = "bmu.edu.in";
+
+export function isAllowedEmail(email: string) {
+  return email.trim().toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
+}
+
 export const registerSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters").max(100),
-    email: z.string().email("Enter a valid email address"),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("Enter a valid email address")
+      .refine(isAllowedEmail, {
+        message: `Only @${ALLOWED_EMAIL_DOMAIN} email addresses can register`,
+      }),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
     role: z.enum(roleValues, { message: "Select a role" }),

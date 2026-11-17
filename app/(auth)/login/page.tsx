@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import { loginSchema } from "@/lib/validations/auth";
-import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
+import AuthField from "@/components/auth/AuthField";
+import AuthAlert from "@/components/auth/AuthAlert";
+import AuthSubmitButton from "@/components/auth/AuthSubmitButton";
+import { LockIcon, MailIcon } from "@/components/auth/icons";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
@@ -51,52 +53,45 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
-      <div className="w-80 max-w-full">
-        <h1 className="text-xl font-semibold text-gray-900">Login</h1>
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          <div>
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {fieldErrors.email && (
-              <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="password" className="text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {fieldErrors.password && (
-              <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
-            )}
-          </div>
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Logging in..." : "Login"}
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-gray-900 hover:underline">
-            Register
-          </Link>
-        </p>
-      </div>
-    </Card>
+    <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-8 shadow-lg">
+      <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
+      <p className="mt-1 text-sm text-slate-500">Sign in to your project management workspace</p>
+
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <AuthField
+          id="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@university.edu"
+          icon={<MailIcon />}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={fieldErrors.email}
+        />
+        <AuthField
+          id="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          icon={<LockIcon />}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={fieldErrors.password}
+        />
+        {formError && <AuthAlert message={formError} />}
+        <AuthSubmitButton pending={isSubmitting} pendingText="Signing in...">
+          Sign in
+        </AuthSubmitButton>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-slate-500">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">
+          Create an account
+        </Link>
+      </p>
+    </div>
   );
 }
