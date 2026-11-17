@@ -24,6 +24,56 @@ async function requireProjectMember(projectId: string) {
   return access;
 }
 
+// Picks a developer for a bug when the reporter leaves "Assign to" empty:
+// 1. The developer who owns a task for the same user story / requirement as the
+//    linked test case (they built the feature that failed).
+// 2. Otherwise the project developer with the fewest open bugs.
+// Returns null when the project has no developers.
+async function pickAutoAssignee(
+  projectId: string,
+  testCase: { requirementId: string | null; userStoryId: string | null } | null,
+): Promise<string | null> {
+  const developerIds = (
+    await prisma.projectMember.findMany({
+      where: { projectId, user: { role: "DEVELOPER" } },
+      select: { userId: true },
+    })
+  ).map((member) => member.userId);
+  if (developerIds.length === 0) return null;
+
+  const featureLinks = [
+    testCase?.userStoryId ? { userStoryId: testCase.userStoryId } : null,
+    testCase?.requirementId ? { requirementId: testCase.requirementId } : null,
+  ].filter((link) => link !== null);
+
+  if (featureLinks.length > 0) {
+    const tasks = await prisma.task.findMany({
+      where: { projectId, assigneeId: { in: developerIds }, OR: featureLinks },
+      select: { assigneeId: true, userStoryId: true },
+      orderBy: { createdAt: "desc" },
+    });
+    // Prefer a task on the exact user story over one on the broader requirement.
+    const owner =
+      tasks.find((task) => testCase?.userStoryId && task.userStoryId === testCase.userStoryId) ??
+      tasks[0];
+    if (owner?.assigneeId) return owner.assigneeId;
+  }
+
+  const openBugCounts = await prisma.bug.groupBy({
+    by: ["assigneeId"],
+    where: {
+      projectId,
+      assigneeId: { in: developerIds },
+      status: { in: ["OPEN", "IN_PROGRESS", "FIXED"] },
+    },
+    _count: { _all: true },
+  });
+  const load = new Map(openBugCounts.map((row) => [row.assigneeId, row._count._all]));
+  return developerIds.reduce((best, id) =>
+    (load.get(id) ?? 0) < (load.get(best) ?? 0) ? id : best
+  );
+}
+
 export async function createBug(projectId: string, formData: FormData) {
   const { session, role } = await requireProjectMember(projectId);
   if (!isTester(role as Role) && !isProjectManager(role as Role)) {
@@ -48,14 +98,24 @@ export async function createBug(projectId: string, formData: FormData) {
     redirect(errorUrl(backUrl, result.error.issues[0].message));
   }
 
-  const { title, description, severity, priority, testCaseId, assigneeId } = result.data;
+  const { title, description, severity, priority, testCaseId } = result.data;
+  let assigneeId = result.data.assigneeId;
 
   // Verify test case belongs to this project
+  let linkedTestCase: { requirementId: string | null; userStoryId: string | null } | null = null;
   if (testCaseId) {
-    const tc = await prisma.testCase.findFirst({ where: { id: testCaseId, projectId } });
-    if (!tc) {
+    linkedTestCase = await prisma.testCase.findFirst({
+      where: { id: testCaseId, projectId },
+      select: { requirementId: true, userStoryId: true },
+    });
+    if (!linkedTestCase) {
       redirect(errorUrl(`${listPath(projectId)}/new`, "Test case does not belong to this project."));
     }
+  }
+
+  // No developer chosen: auto-assign one (see pickAutoAssignee).
+  if (!assigneeId) {
+    assigneeId = (await pickAutoAssignee(projectId, linkedTestCase)) ?? undefined;
   }
 
   // Validate assignee is a DEVELOPER who is a project member
