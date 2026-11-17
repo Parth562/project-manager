@@ -34,25 +34,26 @@ export default async function ProjectBugsPage({
   const isTesterRole = isTester(role as Role);
   const isDevRole = isDeveloper(role as Role);
 
-  const bugs = await prisma.bug.findMany({
-    where: isDevRole
-      ? { projectId, assigneeId: session.user.id }
-      : { projectId },
-    include: {
-      reporter: { select: { name: true } },
-      assignee: { select: { name: true } },
-      testCase: { select: { title: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Developers available for assignment (PM feature)
-  const developers = isPm
-    ? await prisma.projectMember.findMany({
-        where: { projectId, user: { role: "DEVELOPER" } },
-        include: { user: { select: { id: true, name: true } } },
-      })
-    : [];
+  const [bugs, developers] = await Promise.all([
+    prisma.bug.findMany({
+      where: isDevRole
+        ? { projectId, assigneeId: session.user.id }
+        : { projectId },
+      include: {
+        reporter: { select: { name: true } },
+        assignee: { select: { name: true } },
+        testCase: { select: { title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    // Developers available for assignment (PM feature)
+    isPm
+      ? prisma.projectMember.findMany({
+          where: { projectId, user: { role: "DEVELOPER" } },
+          include: { user: { select: { id: true, name: true } } },
+        })
+      : [],
+  ]);
 
   const statusColors: Record<string, string> = {
     OPEN: "bg-red-100 text-red-700",

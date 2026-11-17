@@ -45,17 +45,18 @@ export default async function RequirementDetailsPage({
   if (!project) notFound();
   if (!isMember) return <AccessDenied />;
 
-  const requirement = await prisma.requirement.findFirst({
-    where: { id: requirementId, projectId },
-    include: { createdBy: { select: { name: true } } },
-  });
+  const [requirement, userStories] = await Promise.all([
+    prisma.requirement.findFirst({
+      where: { id: requirementId, projectId },
+      include: { createdBy: { select: { name: true } } },
+    }),
+    prisma.userStory.findMany({
+      where: { requirementId, projectId },
+      include: { createdBy: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
   if (!requirement) notFound();
-
-  const userStories = await prisma.userStory.findMany({
-    where: { requirementId, projectId },
-    include: { createdBy: { select: { name: true } } },
-    orderBy: { createdAt: "desc" },
-  });
 
   const canManage = canManageRequirements(role, isCreator);
   const canChangeStatus = canUpdateRequirementStatus(role, isMember, isCreator);

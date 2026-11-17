@@ -31,27 +31,27 @@ export default async function NewBugPage({
     redirect(`/projects/${projectId}/bugs`);
   }
 
-  // Prefill test case if linked from testing page
-  let linkedTestCase = null;
-  if (testCaseId) {
-    linkedTestCase = await prisma.testCase.findFirst({
-      where: { id: testCaseId, projectId },
+  // Independent queries run in parallel (one network round trip instead of three).
+  const [linkedTestCase, testCases, developers] = await Promise.all([
+    // Prefill test case if linked from testing page
+    testCaseId
+      ? prisma.testCase.findFirst({
+          where: { id: testCaseId, projectId },
+          select: { id: true, title: true },
+        })
+      : null,
+    // Failed project test cases for manual linking
+    prisma.testCase.findMany({
+      where: { projectId, status: "FAIL" },
+      orderBy: { createdAt: "desc" },
       select: { id: true, title: true },
-    });
-  }
-
-  // All project test cases for manual linking
-  const testCases = await prisma.testCase.findMany({
-    where: { projectId, status: "FAIL" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, title: true },
-  });
-
-  // Developers for optional assignment
-  const developers = await prisma.projectMember.findMany({
-    where: { projectId, user: { role: "DEVELOPER" } },
-    include: { user: { select: { id: true, name: true } } },
-  });
+    }),
+    // Developers for optional assignment
+    prisma.projectMember.findMany({
+      where: { projectId, user: { role: "DEVELOPER" } },
+      include: { user: { select: { id: true, name: true } } },
+    }),
+  ]);
 
   return (
     <PageContainer title="Report Bug">
@@ -146,14 +146,19 @@ export default async function NewBugPage({
 
           <div>
             <label htmlFor="assigneeId" className="block text-sm font-medium text-gray-700">
-              Assign to Developer (optional)
+              Assign to Developer
             </label>
             <select id="assigneeId" name="assigneeId" className={`mt-1 ${inputClass}`}>
-              <option value="">— Unassigned —</option>
+              <option value="">Auto-assign (recommended)</option>
               {developers.map((m) => (
                 <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {developers.length === 0
+                ? "This project has no developers yet, so the bug will stay unassigned."
+                : "Auto-assign picks the developer who owns the task for the failed feature, or else the developer with the fewest open bugs."}
+            </p>
           </div>
 
           <div className="pt-2">

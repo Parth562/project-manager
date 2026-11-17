@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PageContainer from "@/components/ui/PageContainer";
 import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/db/prisma";
 import { getServerSession } from "@/lib/auth/session";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
@@ -23,6 +22,7 @@ export default async function ProjectDetailsPage({
     include: {
       createdBy: true,
       members: { include: { user: true }, orderBy: { joinedAt: "asc" } },
+      _count: { select: { requirements: true, tasks: true, testCases: true, bugs: true } },
     },
   });
 
@@ -45,53 +45,55 @@ export default async function ProjectDetailsPage({
     );
   }
 
-  const isCreator = project.createdById === session.user.id;
+  const sections = [
+    { label: "Requirements", href: "requirements", count: project._count.requirements, accent: "bg-gray-900" },
+    { label: "Tasks", href: "tasks", count: project._count.tasks, accent: "bg-indigo-600" },
+    { label: "Test Cases", href: "testing", count: project._count.testCases, accent: "bg-teal-600" },
+    { label: "Bugs", href: "bugs", count: project._count.bugs, accent: "bg-red-600" },
+  ];
 
   return (
     <PageContainer title={project.name}>
       <Card>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <dl className="space-y-2 text-sm text-gray-600">
-            <p className="max-w-xl">{project.description}</p>
-            <div>
-              Status:{" "}
-              <span className="font-medium text-gray-900">
-                {STATUS_LABELS[project.status]}
-              </span>
-            </div>
-            <div>Start: {project.startDate.toLocaleDateString()}</div>
-            <div>End: {project.endDate.toLocaleDateString()}</div>
-            <div>Created By: {project.createdBy.name}</div>
-          </dl>
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/projects/${project.id}/requirements`}>
-              <Button>Requirements</Button>
-            </Link>
-            <Link href={`/projects/${project.id}/tasks`}>
-              <Button className="bg-indigo-700 hover:bg-indigo-600">Tasks</Button>
-            </Link>
-            <Link href={`/projects/${project.id}/kanban`}>
-              <Button className="bg-indigo-700 hover:bg-indigo-600">Kanban</Button>
-            </Link>
-            <Link href={`/projects/${project.id}/testing`}>
-              <Button className="bg-teal-700 hover:bg-teal-600">Testing</Button>
-            </Link>
-            <Link href={`/projects/${project.id}/bugs`}>
-              <Button className="bg-red-700 hover:bg-red-600">Bugs</Button>
-            </Link>
-            {isCreator && (
-              <>
-                <Link href={`/projects/${project.id}/edit`}>
-                  <Button>Edit Project</Button>
-                </Link>
-                <Link href={`/projects/${project.id}/team`}>
-                  <Button>Manage Team</Button>
-                </Link>
-              </>
-            )}
+        <p className="max-w-2xl text-sm text-gray-600">{project.description}</p>
+        <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-xs uppercase text-gray-500">Status</dt>
+            <dd className="mt-1 font-medium text-gray-900">{STATUS_LABELS[project.status]}</dd>
           </div>
-        </div>
+          <div>
+            <dt className="text-xs uppercase text-gray-500">Start</dt>
+            <dd className="mt-1 text-gray-900">{project.startDate.toLocaleDateString()}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-gray-500">End</dt>
+            <dd className="mt-1 text-gray-900">{project.endDate.toLocaleDateString()}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-gray-500">Created By</dt>
+            <dd className="mt-1 text-gray-900">{project.createdBy.name}</dd>
+          </div>
+        </dl>
       </Card>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {sections.map((section) => (
+          <Link
+            key={section.href}
+            href={`/projects/${project.id}/${section.href}`}
+            className="group rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md"
+          >
+            <span className={`block h-1 w-8 rounded-full ${section.accent}`} />
+            <p className="mt-3 text-2xl font-semibold text-gray-900">{section.count}</p>
+            <p className="mt-1 flex items-center justify-between text-sm text-gray-600">
+              {section.label}
+              <span className="text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-gray-900">
+                →
+              </span>
+            </p>
+          </Link>
+        ))}
+      </div>
 
       <Card>
         <h2 className="text-base font-semibold text-gray-900">Team Members</h2>

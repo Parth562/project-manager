@@ -30,17 +30,18 @@ export default async function NewTestCasePage({
     redirect(`/projects/${projectId}/testing`);
   }
 
-  const requirements = await prisma.requirement.findMany({
-    where: { projectId },
-    orderBy: { title: "asc" },
-    select: { id: true, title: true },
-  });
-
-  const approvedStories = await prisma.userStory.findMany({
-    where: { projectId, status: "APPROVED" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, storyText: true },
-  });
+  const [requirements, approvedStories] = await Promise.all([
+    prisma.requirement.findMany({
+      where: { projectId },
+      orderBy: { title: "asc" },
+      select: { id: true, title: true },
+    }),
+    prisma.userStory.findMany({
+      where: { projectId, status: "APPROVED" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, storyText: true },
+    }),
+  ]);
 
   return (
     <PageContainer title="New Test Case">

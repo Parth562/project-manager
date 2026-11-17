@@ -21,18 +21,19 @@ export default async function TeamPage({
   const { projectId } = await params;
   const { error } = await searchParams;
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: { members: { include: { user: true }, orderBy: { joinedAt: "asc" } } },
-  });
+  const [project, availableUsers] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id: projectId },
+      include: { members: { include: { user: true }, orderBy: { joinedAt: "asc" } } },
+    }),
+    // Users not yet in this project (relation filter, so it can run in parallel).
+    prisma.user.findMany({
+      where: { projectMemberships: { none: { projectId } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
   if (!project) notFound();
   if (project.createdById !== session.user.id) redirect(`/projects/${projectId}`);
-
-  const memberUserIds = project.members.map((member) => member.userId);
-  const availableUsers = await prisma.user.findMany({
-    where: { id: { notIn: memberUserIds } },
-    orderBy: { name: "asc" },
-  });
 
   const addMemberWithId = addProjectMember.bind(null, projectId);
 

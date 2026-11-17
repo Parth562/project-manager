@@ -34,28 +34,28 @@ export default async function NewTaskPage({
   if (!isMember) return <AccessDenied />;
   if (!isProjectManager(role as Role)) redirect(`/projects/${projectId}/tasks`);
 
-  // Developers for assignment dropdown
-  const developers = await prisma.projectMember.findMany({
-    where: {
-      projectId,
-      user: { role: "DEVELOPER" },
-    },
-    include: { user: { select: { id: true, name: true } } },
-  });
-
-  // Requirements for linking
-  const requirements = await prisma.requirement.findMany({
-    where: { projectId },
-    orderBy: { title: "asc" },
-    select: { id: true, title: true },
-  });
-
-  // Only approved user stories can be linked
-  const userStories = await prisma.userStory.findMany({
-    where: { projectId, status: "APPROVED" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, storyText: true },
-  });
+  const [developers, requirements, userStories] = await Promise.all([
+    // Developers for assignment dropdown
+    prisma.projectMember.findMany({
+      where: {
+        projectId,
+        user: { role: "DEVELOPER" },
+      },
+      include: { user: { select: { id: true, name: true } } },
+    }),
+    // Requirements for linking
+    prisma.requirement.findMany({
+      where: { projectId },
+      orderBy: { title: "asc" },
+      select: { id: true, title: true },
+    }),
+    // Only approved user stories can be linked
+    prisma.userStory.findMany({
+      where: { projectId, status: "APPROVED" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, storyText: true },
+    }),
+  ]);
 
   return (
     <PageContainer title="New Task">
